@@ -48,7 +48,17 @@ export default function AdminLayout({
           return;
         }
 
-        const user = JSON.parse(userStr);
+        let user;
+        try {
+          user = JSON.parse(userStr);
+        } catch (e) {
+          console.log('Invalid user JSON, redirecting to login');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.push('/login');
+          return;
+        }
+
         console.log('Checking user role:', user);
         
         if (user.role !== 'admin') {
@@ -78,7 +88,7 @@ export default function AdminLayout({
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-green-500"></div>
       </div>
     );
   }

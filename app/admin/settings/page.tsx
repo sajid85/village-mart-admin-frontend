@@ -1,104 +1,63 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-
-interface SiteAppearanceSettings {
-  themeMode: 'light' | 'dark';
-}
-
-interface ApiResponse<T> {
-  data: T;
-  statusCode: number;
-  message: string;
-  timestamp: string;
-  path: string;
-}
+import React, { useState } from 'react';
+import { api } from '@/services/api';
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<SiteAppearanceSettings>({
-    themeMode: 'light',
+  const [isLoading] = useState(false);
+
+  // Admin info state
+  const [admin, setAdmin] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const user = localStorage.getItem('user');
+      return user ? JSON.parse(user) : { firstName: '', lastName: '', email: '' };
+    }
+    return { firstName: '', lastName: '', email: '' };
   });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [adminEdit, setAdminEdit] = useState(admin);
+  const [adminSaveStatus, setAdminSaveStatus] = useState<string | null>(null);
+  const [adminError, setAdminError] = useState<string | null>(null);
+  // Change password state
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [pwStatus, setPwStatus] = useState<string | null>(null);
+  const [pwError, setPwError] = useState<string | null>(null);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    };
-  };
-
-  const fetchSettings = async () => {
+  const handleAdminSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminSaveStatus(null);
+    setAdminError(null);
     try {
-      setIsLoading(true);
-      const response = await fetch('/api/admin/settings/appearance', {
-        headers: getAuthHeaders(),
+      const res = await api.patch('/admin/profile', {
+        firstName: adminEdit.firstName,
+        lastName: adminEdit.lastName,
+        email: adminEdit.email,
       });
-
-      if (!response.ok) {
-        console.error('Failed to fetch settings with status:', response.status);
-        setSettings({ themeMode: 'light' });
-        return;
-      }
-
-      const result: ApiResponse<SiteAppearanceSettings> = await response.json();
-      if (result.data && (result.data.themeMode === 'light' || result.data.themeMode === 'dark')) {
-        setSettings({ themeMode: result.data.themeMode });
-      } else {
-        setSettings({ themeMode: 'light' });
-      }
-    } catch (err) {
-      console.error('Error fetching settings:', err);
-      setSettings({ themeMode: 'light' });
-    } finally {
-      setIsLoading(false);
+      setAdmin(res.data);
+      localStorage.setItem('user', JSON.stringify(res.data));
+      setAdminSaveStatus('Profile updated successfully!');
+    } catch (err: unknown) {
+      setAdminError(err instanceof Error ? err.message : 'Failed to update profile');
     }
   };
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSettings({ themeMode: e.target.value as 'light' | 'dark' });
-  };
-
-  const handleSaveSettings = async (e: React.FormEvent) => {
+  // Change password
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
-    setSaveSuccess(null);
-
+    setPwStatus(null);
+    setPwError(null);
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setPwError('New passwords do not match');
+      return;
+    }
     try {
-      const response = await fetch('/api/admin/settings/appearance', {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ themeMode: settings.themeMode }),
+      await api.patch('/admin/change-password', {
+        currentPassword: pwForm.currentPassword,
+        newPassword: pwForm.newPassword,
       });
-
-      if (!response.ok) {
-        console.error('Failed to save settings with status:', response.status);
-        setSaveSuccess('Failed to save settings.');
-      } else {
-        const result: ApiResponse<SiteAppearanceSettings> = await response.json();
-        if (result.data && (result.data.themeMode === 'light' || result.data.themeMode === 'dark')) {
-          setSettings({ themeMode: result.data.themeMode });
-          setSaveSuccess('Settings saved successfully!');
-        } else {
-          setSaveSuccess('Settings saved, but received unexpected data.');
-        }
-      }
-
-      setTimeout(() => {
-        setSaveSuccess(null);
-      }, 3000);
-
-    } catch (err) {
-      console.error('Error saving settings:', err);
-      setSaveSuccess('An error occurred while saving settings.');
-    } finally {
-      setIsSaving(false);
+      setPwStatus('Password changed successfully!');
+      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err: unknown) {
+      setPwError(err instanceof Error ? err.message : 'Failed to change password');
     }
   };
 
@@ -112,63 +71,58 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">Theme Settings</h1>
-
-      {saveSuccess && (
-        <div className="mb-4 rounded-md bg-green-50 p-4">
-          <div className="flex">
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-green-800">Success</h3>
-              <div className="mt-2 text-sm text-green-700">
-                <p>{saveSuccess}</p>
-              </div>
+    <div className="p-6 space-y-8">
+      <h1 className="text-2xl font-semibold text-gray-900 mb-6">Settings</h1>
+      {/* Admin Info Card */}
+      <div className="bg-white shadow sm:rounded-lg p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Admin Info</h2>
+        <form onSubmit={handleAdminSave} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">First Name</label>
+              <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm text-gray-900 placeholder-gray-500" value={adminEdit.firstName} onChange={e => setAdminEdit((a: typeof adminEdit) => ({ ...a, firstName: e.target.value }))} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Last Name</label>
+              <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm text-gray-900 placeholder-gray-500" value={adminEdit.lastName} onChange={e => setAdminEdit((a: typeof adminEdit) => ({ ...a, lastName: e.target.value }))} required />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <input type="email" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm text-gray-900 placeholder-gray-500" value={adminEdit.email} onChange={e => setAdminEdit((a: typeof adminEdit) => ({ ...a, email: e.target.value }))} required />
             </div>
           </div>
-        </div>
-      )}
-
-      <form onSubmit={handleSaveSettings} className="bg-white shadow overflow-hidden sm:rounded-lg p-6 space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Theme Mode</label>
-          <div className="mt-1 flex items-center space-x-4">
-            <label className="inline-flex items-center">
-              <input
-                type="radio"
-                name="themeMode"
-                value="light"
-                checked={settings.themeMode === 'light'}
-                onChange={handleInputChange}
-                className="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300"
-              />
-              <span className="ml-2 text-sm text-gray-700">Light Mode</span>
-            </label>
-            <label className="inline-flex items-center">
-              <input
-                type="radio"
-                name="themeMode"
-                value="dark"
-                checked={settings.themeMode === 'dark'}
-                onChange={handleInputChange}
-                className="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300"
-              />
-              <span className="ml-2 text-sm text-gray-700">Dark Mode</span>
-            </label>
-          </div>
-        </div>
-
-        <div className="pt-5">
+          {adminSaveStatus && <div className="text-green-700 text-sm">{adminSaveStatus}</div>}
+          {adminError && <div className="text-red-700 text-sm">{adminError}</div>}
           <div className="flex justify-end">
-            <button
-              type="submit"
-              className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isSaving}
-            >
-              {isSaving ? 'Saving...' : 'Save Settings'}
-            </button>
+            <button type="submit" className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">Save Profile</button>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
+      {/* Change Password Card */}
+      <div className="bg-white shadow sm:rounded-lg p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Change Password</h2>
+        <form onSubmit={handleChangePassword} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Current Password</label>
+              <input type="password" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm text-gray-900 placeholder-gray-500" value={pwForm.currentPassword} onChange={e => setPwForm(f => ({ ...f, currentPassword: e.target.value }))} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">New Password</label>
+              <input type="password" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm text-gray-900 placeholder-gray-500" value={pwForm.newPassword} onChange={e => setPwForm(f => ({ ...f, newPassword: e.target.value }))} required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
+              <input type="password" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm text-gray-900 placeholder-gray-500" value={pwForm.confirmPassword} onChange={e => setPwForm(f => ({ ...f, confirmPassword: e.target.value }))} required />
+            </div>
+          </div>
+          {pwStatus && <div className="text-green-700 text-sm">{pwStatus}</div>}
+          {pwError && <div className="text-red-700 text-sm">{pwError}</div>}
+          <div className="flex justify-end">
+            <button type="submit" className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">Change Password</button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 } 

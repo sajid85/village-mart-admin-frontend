@@ -25,7 +25,7 @@ export const formatPercentage = (value: number | null | undefined): string => {
 export const getStatusColor = (status: string): string => {
   const colors = {
     pending: "yellow",
-    processing: "blue",
+    processing: "green",
     shipped: "purple",
     delivered: "green",
     cancelled: "red",

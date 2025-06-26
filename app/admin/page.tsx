@@ -5,11 +5,7 @@ import { motion } from 'framer-motion';
 import {
   CurrencyDollarIcon,
   ShoppingCartIcon,
-  UserGroupIcon,
   CubeIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-  ChartBarIcon,
   UsersIcon,
   DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
@@ -53,13 +49,12 @@ export default function AdminDashboard() {
       console.error('No token found in localStorage. Cannot fetch dashboard stats.');
       setIsLoading(false);
       setError('Authentication token missing. Please log in.');
-      // Optionally redirect to login here as well, though useEffect should handle it
-      // window.location.href = '/admin';
       return;
     }
 
     try {
-      const response = await fetch('/api/admin/stats', {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const response = await fetch(`${API_BASE_URL}/admin/stats`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },

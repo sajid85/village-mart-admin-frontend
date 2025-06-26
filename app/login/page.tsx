@@ -172,6 +172,11 @@ export default function LoginPage() {
             
             </form>
           )}
+          <div className="mt-6 text-center">
+            <a href="/signup" className="text-green-600 hover:text-green-700 font-medium">
+              Create an admin account
+            </a>
+          </div>
         </div>
       </div>
     </div>
