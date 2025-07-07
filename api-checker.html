@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Data Checker - Village Mart</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .endpoint {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { border-color: #4CAF50; background: #f0fff0; }
+        .error { border-color: #f44336; background: #fff0f0; }
+        .pending { border-color: #ff9800; background: #fff9e6; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .status { font-weight: bold; }
+        .token-input { width: 100%; padding: 8px; margin: 10px 0; }
+        .summary { background: #e7f3ff; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Village Mart API Data Checker</h1>
+        <p>This tool helps you check what data is available from your backend API.</p>
+
+        <div class="summary">
+            <h3>📋 Quick Summary</h3>
+            <div id="summary">Click "Test All Endpoints" to see what's available</div>
+        </div>
+
+        <div>
+            <label for="token">Authentication Token (if needed):</label>
+            <input type="text" id="token" class="token-input" placeholder="Paste your JWT token here (optional)">
+            <small>💡 You can get this from localStorage in your browser's dev tools, or login first</small>
+        </div>
+
+        <div>
+            <button onclick="testAllEndpoints()">🚀 Test All Endpoints</button>
+            <button onclick="copyTokenFromLocalStorage()">📋 Copy Token from localStorage</button>
+            <button onclick="clearResults()">🗑️ Clear Results</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const endpoints = [
+            { url: 'http://localhost:4000/products', name: 'Products', description: 'Product catalog data' },
+            { url: 'http://localhost:4000/inventory', name: 'Inventory', description: 'Inventory management data' },
+            { url: 'http://localhost:4000/categories', name: 'Categories', description: 'Product categories' },
+            { url: 'http://localhost:4000/orders', name: 'Orders', description: 'Customer orders' },
+            { url: 'http://localhost:4000/users', name: 'Users', description: 'User accounts' },
+            { url: 'http://localhost:4000/customers', name: 'Customers', description: 'Customer data' },
+            { url: 'http://localhost:4000/health', name: 'Health Check', description: 'Server status' },
+            { url: 'http://localhost:4000/api/products', name: 'API Products', description: 'Products via /api route' },
+            { url: 'http://localhost:4000/api/inventory', name: 'API Inventory', description: 'Inventory via /api route' }
+        ];
+
+        function copyTokenFromLocalStorage() {
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    document.getElementById('token').value = token;
+                    alert('✅ Token copied from localStorage!');
+                } else {
+                    alert('❌ No token found in localStorage. Please login first.');
+                }
+            } catch (error) {
+                alert('❌ Error accessing localStorage: ' + error.message);
+            }
+        }
+
+        async function testEndpoint(endpoint) {
+            const resultDiv = document.getElementById(endpoint.name.replace(/\s+/g, ''));
+            resultDiv.className = 'endpoint pending';
+            resultDiv.innerHTML = `
+                <h3>🔄 ${endpoint.name}</h3>
+                <p>${endpoint.description}</p>
+                <p><strong>URL:</strong> ${endpoint.url}</p>
+                <p class="status">Testing...</p>
+            `;
+
+            try {
+                const token = document.getElementById('token').value;
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch(endpoint.url, { 
+                    headers,
+                    method: 'GET'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const itemCount = Array.isArray(data) ? data.length : 
+                                    (data.data && Array.isArray(data.data)) ? data.data.length : 
+                                    'Unknown';
+
+                    resultDiv.className = 'endpoint success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ ${endpoint.name}</h3>
+                        <p>${endpoint.description}</p>
+                        <p><strong>URL:</strong> ${endpoint.url}</p>
+                        <p class="status">Status: ${response.status} OK</p>
+                        <p><strong>Items found:</strong> ${itemCount}</p>
+                        <details>
+                            <summary>📄 Raw Response (click to expand)</summary>
+                            <pre>${JSON.stringify(data, null, 2).substring(0, 1000)}${JSON.stringify(data, null, 2).length > 1000 ? '...' : ''}</pre>
+                        </details>
+                        ${data.data && Array.isArray(data.data) && data.data.length > 0 ? `
+                            <details>
+                                <summary>📦 Sample Item</summary>
+                                <pre>${JSON.stringify(data.data[0], null, 2)}</pre>
+                            </details>
+                        ` : ''}
+                    `;
+                    return { success: true, count: itemCount, endpoint: endpoint.name };
+                } else {
+                    const errorText = await response.text().catch(() => 'No error details');
+                    resultDiv.className = 'endpoint error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ ${endpoint.name}</h3>
+                        <p>${endpoint.description}</p>
+                        <p><strong>URL:</strong> ${endpoint.url}</p>
+                        <p class="status">Status: ${response.status} ${response.statusText}</p>
+                        <details>
+                            <summary>Error Details</summary>
+                            <pre>${errorText}</pre>
+                        </details>
+                    `;
+                    return { success: false, status: response.status, endpoint: endpoint.name };
+                }
+            } catch (error) {
+                resultDiv.className = 'endpoint error';
+                resultDiv.innerHTML = `
+                    <h3>❌ ${endpoint.name}</h3>
+                    <p>${endpoint.description}</p>
+                    <p><strong>URL:</strong> ${endpoint.url}</p>
+                    <p class="status">Connection Error</p>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>💡 Make sure your backend server is running on port 4000</p>
+                `;
+                return { success: false, error: error.message, endpoint: endpoint.name };
+            }
+        }
+
+        async function testAllEndpoints() {
+            const results = document.getElementById('results');
+            results.innerHTML = endpoints.map(ep => 
+                `<div id="${ep.name.replace(/\s+/g, '')}" class="endpoint pending">
+                    <h3>⏳ ${ep.name}</h3>
+                    <p>Preparing to test...</p>
+                </div>`
+            ).join('');
+
+            const summaryDiv = document.getElementById('summary');
+            summaryDiv.innerHTML = 'Testing endpoints...';
+
+            const testResults = [];
+            for (const endpoint of endpoints) {
+                const result = await testEndpoint(endpoint);
+                testResults.push(result);
+            }
+
+            // Update summary
+            const successful = testResults.filter(r => r.success);
+            const failed = testResults.filter(r => !r.success);
+            
+            let summaryHTML = `
+                <strong>Results:</strong><br>
+                ✅ ${successful.length} endpoints working<br>
+                ❌ ${failed.length} endpoints failed<br><br>
+            `;
+
+            if (successful.length > 0) {
+                summaryHTML += '<strong>📊 Available Data:</strong><br>';
+                successful.forEach(result => {
+                    summaryHTML += `• ${result.endpoint}: ${result.count} items<br>`;
+                });
+                summaryHTML += '<br>';
+            }
+
+            if (failed.length > 0) {
+                summaryHTML += '<strong>💡 Recommendations:</strong><br>';
+                if (failed.some(f => f.error && f.error.includes('fetch'))) {
+                    summaryHTML += '• Start your backend server on port 4000<br>';
+                }
+                if (failed.some(f => f.status === 401)) {
+                    summaryHTML += '• Login to get an authentication token<br>';
+                }
+                if (failed.some(f => f.status === 404)) {
+                    summaryHTML += '• Some endpoints may not exist in your API<br>';
+                }
+            }
+
+            summaryDiv.innerHTML = summaryHTML;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('summary').innerHTML = 'Click "Test All Endpoints" to see what\'s available';
+        }
+
+        // Auto-load token if available
+        window.addEventListener('load', () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    document.getElementById('token').value = token;
+                }
+            } catch (error) {
+                // Ignore localStorage errors
+            }
+        });
+    </script>
+</body>
+</html>

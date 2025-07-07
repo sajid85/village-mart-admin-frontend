@@ -1,0 +1,12 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="8" cy="8" r="7" fill="#10B981"/>
+  
+  <!-- Shopping cart icon simplified for 16x16 -->
+  <path d="M3 3h2l1 5h4l1-2H5" stroke="white" stroke-width="1" stroke-linecap="round" fill="none"/>
+  <circle cx="6" cy="12" r="0.5" fill="white"/>
+  <circle cx="10" cy="12" r="0.5" fill="white"/>
+  
+  <!-- Small dot for village -->
+  <circle cx="12" cy="4" r="1" fill="white"/>
+</svg>

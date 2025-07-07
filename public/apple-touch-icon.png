@@ -1,0 +1,24 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Modern hexagonal design - larger version -->
+  <defs>
+    <linearGradient id="hexGradLarge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#059669;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#34D399;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6EE7B7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Large hexagon background -->
+  <path d="M90 15L150 52.5V127.5L90 165L30 127.5V52.5L90 15Z" fill="url(#hexGradLarge)" stroke="#065F46" stroke-width="3"/>
+  
+  <!-- Letter V -->
+  <path d="M55 60L90 120L125 60" stroke="white" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  
+  <!-- Letter M -->
+  <path d="M40 120L65 85L90 120L115 85L140 120" stroke="white" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  
+  <!-- Subtle accent dots -->
+  <circle cx="90" cy="35" r="4" fill="white" opacity="0.6"/>
+  <circle cx="90" cy="145" r="4" fill="white" opacity="0.6"/>
+</svg>

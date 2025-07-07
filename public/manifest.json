@@ -1,0 +1,21 @@
+{
+  "name": "Village Mart Admin",
+  "short_name": "Village Mart",
+  "description": "Village Mart Admin Dashboard - Modern inventory and order management",
+  "start_url": "/admin",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10B981",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
